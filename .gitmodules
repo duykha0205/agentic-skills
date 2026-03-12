@@ -1,0 +1,3 @@
+[submodule "drawio-mcp"]
+	path = drawio-mcp
+	url = https://github.com/jgraph/drawio-mcp.git
