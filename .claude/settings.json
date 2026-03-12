@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "drawio-app": {
+      "command": "node",
+      "args": ["drawio-mcp/mcp-app-server/src/index.js", "--stdio"]
+    }
+  }
+}
