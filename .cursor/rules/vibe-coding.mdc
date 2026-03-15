@@ -1,81 +1,66 @@
 ---
 name: vibe-coding
-description: This is a rule for coding implementation
+description: Agent operational rules and research-first workflow for coding implementation
 ---
 
-# Overview
-### **Agent Operational Rules**
+# Agent Rules (80/20)
 
-1. **Simplicity First:** Prioritize simple, practical code; strictly avoid over-engineering.
-1. **First Principles + 80/20:** Solve from fundamentals; keep docs focused on essential decisions, avoid over-documentation.
-2. **Confirm Implementation:** Always obtain user confirmation before executing or generating implementation code.
-3. **Deep-Dive Inquiry:** Ask specific technical questions to clarify requirements. Continue probing until the request is fully understood.
-4. **Context Mastery:** Fully understand the current environment (e.g., project structure, reusable resources) before coding. **Never make assumptions.**
-5. **Clarify Before Search:** Ask the user clarifying questions *before* performing automated context searches.
-6. **Show Structure:** Always list the repository directory structure.
-7. **Concise Documentation:** Keep documentation as brief as possible while remaining complete; avoid verbosity.
+1. **First Principles + 80/20** — solve from fundamentals; focus on the 20% that delivers 80% of value. Keep code simple, avoid over-engineering. Keep docs concise — only essential decisions, no verbose explanations.
+2. **Clarify until clear** — ask questions until requirements are fully understood; summarize and get approval before drafting or making changes
+3. **Context Mastery** — understand the repo structure, existing patterns, relevant docs before writing. Never assume.
+4. **Never self-answer** — present questions and **WAIT** for user response. Do not assume answers or proceed without confirmation.
 
 ---
 
-## Research-First Workflow
+## Subagents
 
-When receiving a task that requires implementation (new feature, refactor, bug fix, integration), follow this workflow **before** writing any code.
-
-### Phase 1: Auto-Research (Agent spawns subagents)
-
-On any non-trivial task, **immediately spawn both research subagents in parallel**:
-
-| Subagent | Purpose | Depth |
+| Agent | When to spawn | What it does |
 |---|---|---|
-| `codebase-researcher` | Explore repo structure, find relevant code, patterns, and constraints | `quick` for small tasks, `deep` for features/refactors |
-| `internet-researcher` | Look up external docs, best practices, library APIs, version compatibility | Use when task involves external libraries, new tech, or unfamiliar patterns |
+| `codebase-researcher` | Any implementation task | Explore repo, find relevant code & patterns. `quick` or `deep`. |
+| `internet-researcher` | External libs, new tech, unfamiliar APIs | Lookup docs, best practices, version compatibility. |
+| `code-execution` | Code fails to run after implementation | Fix syntax, dependency, library version errors. Does NOT change architecture. |
 
-**Spawn rules (based on task nature):**
-- **Implementation task** (new feature, refactor, bug fix) → spawn `codebase-researcher` (always) + `internet-researcher` (if external knowledge needed). Both **in parallel**.
-- **Internet research only** (lookup docs, best practices, general questions) → spawn `internet-researcher` only. No codebase research.
-- **Codebase research only** (understand existing code, find patterns, audit) → spawn `codebase-researcher` only. No internet research.
-- Pass the **task description** and **depth level** to each subagent.
+## Workflow
 
-### Phase 2: Synthesize & Evaluate
+### 1. Research (auto, parallel)
 
-Once both subagents return:
+On non-trivial tasks, **spawn research subagents immediately in parallel**:
+- **Implementation** → `codebase-researcher` + `internet-researcher` (if external knowledge needed)
+- **Research only** → spawn the relevant one alone
+- If gaps remain after results → spawn targeted follow-up research
 
-1. **Merge findings** — combine codebase context + external research into a unified understanding.
-2. **Evaluate completeness** — ask yourself:
-   - Do I know *where* in the codebase to make changes?
-   - Do I understand the existing patterns I must follow?
-   - Do I have the external knowledge needed (API usage, library behavior)?
-   - Are there unresolved conflicts or gaps?
-3. **If gaps remain** → spawn additional **targeted** research:
-   - Narrow `codebase-researcher` to specific directories or files.
-   - Narrow `internet-researcher` to specific questions.
-   - Repeat until context is sufficient.
+### 2. Plan & Confirm
 
-### Phase 3: Present & Confirm
+Synthesize findings → present concise summary (what, where, how, risks) → **STOP, wait for user confirmation**.
 
-1. Present a concise summary to the user:
-   - What was found (architecture, relevant code, external info)
-   - Proposed approach based on research
-   - Any risks or trade-offs
-2. **STOP — Wait for user confirmation before implementing.**
+### 3. Implement
 
-### Phase 4: Implement
+Write code following researched approach and existing patterns.
 
-Only after user confirms, proceed with implementation following the researched approach.
+### 4. Verify & Fix
 
-### Flow Diagram
+If code **fails to execute** → delegate to `code-execution` subagent:
+- It reproduces, diagnoses, researches latest docs if needed, fixes, and verifies
+- Returns fix summary — main agent stays focused on architecture
+- **Never** self-loop fixing syntax/dependency errors — always delegate
+
+### Flow
 
 ```
 Task received
     │
-    ├──► codebase-researcher (parallel)──► summary
-    │                                         │
-    ├──► internet-researcher (parallel)──► summary
-    │                                         │
-    ▼                                         ▼
-Synthesize findings ◄────────────────────────┘
+    ├──► codebase-researcher ──► findings
+    ├──► internet-researcher ──► findings    (parallel)
     │
-    ├── Context sufficient? ──► YES ──► Present to user ──► Confirm ──► Implement
+    ▼
+Synthesize ──► gaps? ──► targeted research (repeat)
     │
-    └── NO ──► Spawn targeted research (repeat)
+    ▼
+Present plan ──► user confirms ──► Implement
+    │
+    ▼
+Run / Test
+    │
+    ├── PASS ──► Done
+    └── FAIL ──► code-execution subagent ──► fix & verify ──► Done
 ```
